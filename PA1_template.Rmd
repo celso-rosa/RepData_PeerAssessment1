@@ -1,20 +1,92 @@
-# Reproducible Research: Peer Assessment 1
+---
+title: "Assignment 1"
+output: html_document
+---
+
+##Loading and preprocessing the data
+removing records with NA in the steps column and converting date to Date class
+```{r, echo=TRUE}
+library(data.table)
+library(lattice)
+data <- fread("activity.csv")
+data$date <- as.Date(data$date)
+data_valid_steps <- subset(data,complete.cases(data))
+```
 
 
-## Loading and preprocessing the data
+##What is mean total number of steps taken per day?
+```{r, fig.height=5, fig.width=7, echo=TRUE}
+grouped_data_by_date <- data_valid_steps[,list(total_steps=sum(steps)),by=date]
+hist(grouped_data_by_date$total_steps, main="Histogram of total number of steps taken per day", xlab="Total number of steps taken per day")
+````
+
+###mean total number of steps taken per day
+```{r, echo=TRUE}
+mean(grouped_data_by_date$total_steps)
+````
+
+###median total number of steps taken per day
+```{r, echo=TRUE}
+median(grouped_data_by_date$total_steps)
+````
+
+##What is the average daily activity pattern?
+```{r, fig.height=5, fig.width=7, echo=TRUE}
+grouped_data_by_interval <- data_valid_steps[,list(mean_steps=mean(steps)),by=interval]
+plot(grouped_data_by_interval$interval, grouped_data_by_interval$mean_steps, type = "l", xlab="Interval", ylab="Average daily activity")
+````
+
+###Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r, echo=TRUE}
+data_max_steps <- subset(grouped_data_by_interval,mean_steps==max(grouped_data_by_interval$mean_steps))
+unique(data_max_steps$interval)
+````
+
+
+##Imputing missing values
+
+###total number of missing values in the dataset
+```{r, echo=TRUE}
+sum(!complete.cases(data))
+````
+
+###Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated.
+Fill up NA slots with the mean of the day
+
+###Create a new dataset that is equal to the original dataset but with the missing data filled in.
+```{r, echo=TRUE}
+data$modified_steps <- as.double(data$steps)
+data[is.na(steps), modified_steps := grouped_data_by_interval[grouped_data_by_interval$interval==interval]$mean_step]
+````
+
+
+###Make a histogram of the total number of steps taken each day 
+```{r, fig.height=5, fig.width=7, echo=TRUE}
+grouped_data_by_date <- data[,list(total_steps=sum(modified_steps)),by=date]
+hist(grouped_data_by_date$total_steps, main="Histogram of the total number of steps taken each day", xlab="Number of steps taken each day ")
+````
+
+###mean total number of steps taken per day
+```{r, echo=TRUE}
+mean(grouped_data_by_date$total_steps)
+````
+
+###median total number of steps taken per day
+```{r, echo=TRUE}
+median(grouped_data_by_date$total_steps)
+````
+
+###Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+The impact of the change was very limited. Only increasing the median by 1 unit from 10765 to 10766.
+
+##Are there differences in activity patterns between weekdays and weekends?
+```{r, fig.height=5, fig.width=7, echo=TRUE}
+data_valid_steps$weekend <- ifelse(weekdays(data_valid_steps$date) %in% c("Saturday","Sunday"), "weekend", "weekday")
+data_valid_steps$weekend <- as.factor(data_valid_steps$weekend)
+grouped_data_by_interval_and_weekend <- data_valid_steps[,list(mean_steps=mean(steps)),by="weekend,interval"]
+xyplot(mean_steps~interval|weekend,grouped_data_by_interval_and_weekend,type='l',layout = c(1, 2), ylab="Number of steps")
+````
 
 
 
-## What is mean total number of steps taken per day?
 
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
